@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Repository {
+  id            Int       @id @default(autoincrement())
+  name          String
+  remoteUrl     String?
+  originalPath  String    // Path when discovered
+  physicalPath  String?   // Path after triage
+  theme         String?
+  triageStatus  String?   // pending / manual / auto / ignored
+  lastCommitSha String?
+  lastSyncAt    DateTime?
+  isDirty       Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ScanDirectory {
+  id        Int      @id @default(autoincrement())
+  path      String   @unique
+  isWsl     Boolean  @default(false)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Theme {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  color       String?  // For UI display
+  createdAt   DateTime @default(now())
+}
+
+model Settings {
+  id                 Int      @id @default(autoincrement())
+  organizationRoot   String?  // Root path for organized repos (e.g., D:\Codebase\themes)
+  autoTriageEnabled  Boolean  @default(false)
+  backupDestination  String?
+  updatedAt          DateTime @updatedAt
+}
