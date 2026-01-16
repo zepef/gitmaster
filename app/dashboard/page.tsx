@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   FolderOpen,
   AlertTriangle,
-  ArrowRight,
   Settings,
 } from "lucide-react"
 import { redirect } from "next/navigation"

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.2.0",
@@ -36,16 +39,19 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.55.1",
     "@tailwindcss/oxide-win32-x64-msvc": "^4.1.18",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.0.17",
     "eslint": "^9",
     "eslint-config-next": "16.1.2",
     "lightningcss-win32-x64-msvc": "^1.30.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.17"
   }
 }

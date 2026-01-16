@@ -1,7 +1,7 @@
 import simpleGit, { SimpleGit } from 'simple-git'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { normalizeWindowsPath } from './path'
+import { normalizeWindowsPath, normalizeForFs } from './path'
 
 /**
  * Gets the remote URL for a git repository
@@ -75,7 +75,9 @@ export async function getCurrentBranch(repoPath: string): Promise<string | null>
  */
 export async function isGitRepository(dirPath: string): Promise<boolean> {
   try {
-    const gitDir = path.join(dirPath, '.git')
+    // Normalize path for fs operations - critical for WSL UNC paths
+    const normalizedPath = normalizeForFs(dirPath)
+    const gitDir = path.join(normalizedPath, '.git').replace(/\\/g, '/')
     const stat = await fs.stat(gitDir)
     return stat.isDirectory()
   } catch {
@@ -91,7 +93,9 @@ export async function* findGitRepos(
   directory: string,
   maxDepth: number = 5
 ): AsyncGenerator<string> {
-  const queue: Array<{ path: string; depth: number }> = [{ path: directory, depth: 0 }]
+  // Normalize path for fs operations - critical for WSL UNC paths
+  const normalizedDir = normalizeForFs(directory)
+  const queue: Array<{ path: string; depth: number }> = [{ path: normalizedDir, depth: 0 }]
 
   while (queue.length > 0) {
     const current = queue.shift()
@@ -103,23 +107,30 @@ export async function* findGitRepos(
       for (const entry of entries) {
         if (!entry.isDirectory()) continue
 
-        // Skip hidden directories except .git
-        if (entry.name.startsWith('.') && entry.name !== '.git') continue
+        // Check for .git directory FIRST - this indicates a git repo
+        if (entry.name === '.git') {
+          // Found a git repo - yield the parent directory
+          yield current.path
+          // Don't recurse into this repo (no nested repo search)
+          break
+        }
+
+        // Skip hidden directories
+        if (entry.name.startsWith('.')) continue
 
         // Skip common non-project directories
         if (shouldSkipDirectory(entry.name)) continue
 
-        const fullPath = path.join(current.path, entry.name)
+        // Keep paths normalized with forward slashes for UNC path compatibility
+        // Preserve leading // for UNC paths (like //wsl.localhost/...)
+        let fullPath = current.path + '/' + entry.name
+        // Remove duplicate slashes but preserve leading // for UNC paths
+        const isUNC = fullPath.startsWith('//')
+        fullPath = fullPath.replace(/\/+/g, '/')
+        if (isUNC) fullPath = '/' + fullPath
 
-        if (entry.name === '.git') {
-          // Found a git repo - yield the parent directory
-          yield current.path
-          // Don't recurse into .git directories
-          break
-        } else {
-          // Add to queue for further exploration
-          queue.push({ path: fullPath, depth: current.depth + 1 })
-        }
+        // Add to queue for further exploration
+        queue.push({ path: fullPath, depth: current.depth + 1 })
       }
     } catch (error) {
       // Permission denied or other errors - skip this directory
@@ -149,7 +160,6 @@ function shouldSkipDirectory(name: string): boolean {
     '.nuxt',
     '.output',
     'coverage',
-    '.git', // Will be handled separately
   ])
 
   return skipDirs.has(name)
@@ -224,4 +234,63 @@ export function parseGitHubUrl(url: string): { owner: string; repo: string } | n
 export function isGitHubRepo(url: string | null): boolean {
   if (!url) return false
   return url.includes('github.com')
+}
+
+/**
+ * Reads the README file from a repository
+ * Tries common README filenames
+ */
+export async function getReadmeContent(repoPath: string): Promise<string | null> {
+  const readmeNames = [
+    'README.md',
+    'readme.md',
+    'README.MD',
+    'Readme.md',
+    'README',
+    'readme',
+    'README.txt',
+    'readme.txt'
+  ]
+
+  const normalizedPath = normalizeForFs(repoPath)
+
+  for (const readmeName of readmeNames) {
+    try {
+      const readmePath = `${normalizedPath}/${readmeName}`
+      const content = await fs.readFile(readmePath, 'utf-8')
+      // Limit to first 5000 characters to avoid processing huge files
+      return content.slice(0, 5000)
+    } catch {
+      // File doesn't exist, try next
+      continue
+    }
+  }
+
+  return null
+}
+
+/**
+ * Lists files in a repository root directory
+ */
+export async function listRepoFiles(repoPath: string): Promise<string[]> {
+  try {
+    const normalizedPath = normalizeForFs(repoPath)
+    const entries = await fs.readdir(normalizedPath)
+    return entries
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Reads package.json from a repository if it exists
+ */
+export async function getPackageJson(repoPath: string): Promise<Record<string, unknown> | null> {
+  try {
+    const normalizedPath = normalizeForFs(repoPath)
+    const content = await fs.readFile(`${normalizedPath}/package.json`, 'utf-8')
+    return JSON.parse(content)
+  } catch {
+    return null
+  }
 }

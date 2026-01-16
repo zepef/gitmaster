@@ -12,6 +12,7 @@ export interface RepoScanResult {
   remoteUrl: string | null
   lastCommitSha: string | null
   isDirty: boolean
+  suggestedTheme?: string
 }
 
 export interface MovePreview {
@@ -38,15 +39,6 @@ export interface ScanResults {
   updatedRepos: number
   totalScanned: number
 }
-
-export interface SyncStatus {
-  repoId: number
-  localSha: string | null
-  remoteSha: string | null
-  status: 'synced' | 'ahead' | 'behind' | 'diverged' | 'unknown'
-}
-
-export type SyncStatusMap = Record<number, SyncStatus>
 
 // ============================================
 // Action Result Pattern

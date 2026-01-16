@@ -2,8 +2,21 @@ import * as path from 'path'
 
 /**
  * Normalizes Windows paths by converting backslashes to forward slashes
+ * This is critical for UNC paths (like WSL paths) which Node.js only handles
+ * correctly with forward slashes on Windows
  */
 export function normalizeWindowsPath(inputPath: string): string {
+  return inputPath.replace(/\\/g, '/')
+}
+
+/**
+ * Normalizes a path for use with Node.js fs operations
+ * Handles WSL UNC paths which require forward slashes to work correctly
+ */
+export function normalizeForFs(inputPath: string): string {
+  // Convert all backslashes to forward slashes
+  // This is especially critical for UNC paths like \\wsl.localhost\...
+  // which Node.js on Windows only handles correctly as //wsl.localhost/...
   return inputPath.replace(/\\/g, '/')
 }
 
@@ -166,8 +179,12 @@ export function getParentDirectory(inputPath: string): string {
   parts.pop()
   const result = parts.join('/')
 
-  // Preserve drive letter format
+  // Preserve drive letter format and ensure drive root has trailing slash
   if (normalized.match(/^[A-Za-z]:/)) {
+    // If only drive letter remains, return with trailing slash
+    if (parts.length === 1 && parts[0].match(/^[A-Za-z]:$/)) {
+      return parts[0] + '/'
+    }
     return result || parts[0] + ':/'
   }
 

@@ -8,13 +8,14 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Repository {
   id            Int       @id @default(autoincrement())
   name          String
   remoteUrl     String?
-  originalPath  String    // Path when discovered
+  originalPath  String    @unique // Path when discovered
   physicalPath  String?   // Path after triage
   theme         String?
   triageStatus  String?   // pending / manual / auto / ignored
@@ -23,6 +24,10 @@ model Repository {
   isDirty       Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([triageStatus])
+  @@index([theme])
+  @@index([isDirty])
 }
 
 model ScanDirectory {

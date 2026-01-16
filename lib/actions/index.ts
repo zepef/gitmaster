@@ -30,7 +30,7 @@ export {
   deleteRepositoryRecord,
 } from "./repositories"
 
-export { triggerScan, refreshRepositoryStatus } from "./scan"
+export { triggerScan, stopScan, refreshRepositoryStatus } from "./scan"
 
 export {
   generateMovePreview,
